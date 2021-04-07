@@ -201,9 +201,25 @@ in io.k8s.api.apps.v1.ReplicaSetSpec
 ReplicaSet следит только за тем, что запущено указанное количество pod-ов. Т.к. указанное количество pod-ов уже было запущено, никаких других изменений не произошло.
 
 * Сделал образы для микросервиса paymentService, и залил на Docker Hub. Сделал манифест paymentservice-replicaset.yaml для развертывания трех реплик из образа v1.
-
 * Подготовил и применил Deployment манифест paymentservice-deployment.yaml. В результате чего появилось 3 реплики сервиса payment в состоянии Ready.
-
 * Убедился, на смени версии образа в манифесте Deployment, что работает, как обновление pod, так и откат на предыдущую версию. Увидел, что при обновлении использовалась стратегия по умолчанию - Rolling Update, и наличие двух ReplicaSet.
+* Подготовил манифест frontend-deployment.yaml с описанием readinessProbe. Из которого успешно развернул 3 экземпляра pod frontend.
+* Изменил URL проверки readinessProbe на `/_health`. Получил ошибку при применении манифеста:  
+`Readiness probe failed: HTTP probe failed with statuscode: 404`  
+А при использовании команды: `kubectl rollout status deployment frontend-deployment --timeout=60s`, получил:  
+`Waiting for deployment "frontend-deployment" rollout to finish: 1 out of 3 new replicas have been updated...`  `error: timed out waiting for the condition`
 
-TODO Probes
+* Подготовлен манифест node-exporter-daemonset.yaml.
+
+### Задание
+
+Изменить node-exporter-daemonset.yaml так, что бы Node Exporter был развернут не только на worker узлах, но и на master.
+
+#### Ответ
+
+Надо либо отключить политику `Taints: node-role.kubernetes.io/master:NoSchedule` для master узлов, либо дать разрешение pod-ам Node Exporter разворачиваться на master узлах. Например так:
+
+```
+tolerations:
+  operator: "Exists"
+```
