@@ -1,11 +1,11 @@
-## n-volkov_platform
+# n-volkov_platform
 n-volkov Platform repository
 
 
-### Знакомство с Kubernetes, основные понятия и архитектура
+## Знакомство с Kubernetes, основные понятия и архитектура
 
-- Установлен и запущен Minikube.
-- Настроено рабочее окружение.
+* Установлен и запущен Minikube.
+* Настроено рабочее окружение.
 
 При проведение тестов на устойчивость, на команду:
 
@@ -53,9 +53,12 @@ scheduler            Healthy   ok
 etcd-0               Healthy   {"health":"true"}
 ```
 
-#### Задание
-- Разберитесь почему все pod в namespace kube-system восстановились после удаления.
-##### Ответ
+### Задание
+
+* Разберитесь почему все pod в namespace kube-system восстановились после удаления.
+
+#### Ответ
+
 Pod coredns принадлежит (ownerReferences) контроллеру ReplicaSet.
 
 ```
@@ -77,41 +80,44 @@ Pod kube-proxy принадлежит (ownerReferences) контроллеру D
 
 Остальные pod-ы: etcd-minikube, kube-apiserver-minikube, kube-controller-manager-minikube и kube-scheduler-minikube, принадлежат узлу (node), и управляются непосредственно kubelet. Kubelet следит за ними, и активирует вновь при падении.
 
-- Был создан Dockerfile, который:
--- запускает web-сервер на порту 8000;
--- отдает содержимое директории /app внутри контейнера;
--- работающий с UID 1001;
-- Dockerfile был помещен в созданную директорию `kubernetes-intro/web`;
-- Из Dockerfile был собран образ контейнера и помещен в публичный Container Registry - Docker Hub;
-- Был написан манифест web-pod.yaml для создания pod **web**, с использованием  ранее собранного образа с Docker Hub. Манифест был помещен в директорию `kubernetes-intro/`;
-- Были опробованы следующие команды:
--- `kubectl apply -f web-pod.yaml`
--- `kubectl get pod web -o yaml`
--- `kubectl describe pod web`
-- В манифест web-pod.yaml было добавлено описание init контейнера, генерирующего страницу index.html;
--- *image* init контейнера содержит wget;
--- *command* init контейнера:  
-`['sh', '-c', 'wget -O- https://tinyurl.com/otus-k8s-intro | sh'];`
-- Для того, чтобы файлы, созданные в init контейнере, были доступны основному контейнеру, в манифест было добавлено описание volume типа *emptyDir*;
-- Обновленный pod **web** был запущен, после удаления старого pod:
--- следил за процессом запуска:  
-`kubectl get pods -w`;
--- проверил работоспособность web сервера:  
-`kubectl port-forward --address 0.0.0.0 pod/web 8000:8000`  
-`curl 'http://localhost:8000/index.html'`
+* Был создан Dockerfile, который:
+ * запускает web-сервер на порту 8000;
+ * отдает содержимое директории /app внутри контейнера;
+ * работающий с UID 1001;
+* Dockerfile был помещен в созданную директорию `kubernetes-intro/web`;
+* Из Dockerfile был собран образ контейнера и помещен в публичный Container Registry - Docker Hub;
+* Был написан манифест web-pod.yaml для создания pod **web**, с использованием  ранее собранного образа с Docker Hub. Манифест был помещен в директорию `kubernetes-intro/`;
+* Были опробованы следующие команды:
+ * `$ kubectl apply -f web-pod.yaml`
+ * `$ kubectl get pod web -o yaml`
+ * `$ kubectl describe pod web`
+* В манифест web-pod.yaml было добавлено описание init контейнера, генерирующего страницу index.html;
+ * *image* init контейнера содержит wget;
+ * *command* init контейнера: `['sh', '-c', 'wget -O- https://tinyurl.com/otus-k8s-intro | sh'];`
+* Для того, чтобы файлы, созданные в init контейнере, были доступны основному контейнеру, в манифест было добавлено описание volume типа *emptyDir*;
+* Обновленный pod **web** был запущен, после удаления старого pod:
+ * следил за процессом запуска:  
+`$ kubectl get pods -w`;
+ * проверил работоспособность web сервера:  
+`$ kubectl port-forward --address 0.0.0.0 pod/web 8000:8000`  
+`$ curl 'http://localhost:8000/index.html'`
 
-- Знакомство с микросервисным приложением Hipster Shop;
-- Запуск внутри кластера одного его компонента - микросервиса frontend;
--- был сделан клон репозитория `https://github.com/GoogleCloudPlatform/microservices-demo`;
--- собран образ контейнера для frontend из `microservices-demo/src/frontend/Dockerfile`;
--- собранный образ был помещен на Docker Hub;
--- используя ad-hoc режим, был сгенерирован манифест средствами kubectl:  
-`kubectl run frontend --image blackwolf292/kubernetes-intro-frontend:v1 --restart=Never --dry-run=client -o yaml > frontend-pod.yaml`
+* Знакомство с микросервисным приложением Hipster Shop;
+* Запуск внутри кластера одного его компонента - микросервиса frontend;
+ * был сделан клон репозитория `https://github.com/GoogleCloudPlatform/microservices-demo`;
+ * собран образ контейнера для frontend из `microservices-demo/src/frontend/Dockerfile`;
+ * собранный образ был помещен на Docker Hub;
+ * используя ad-hoc режим, был сгенерирован манифест средствами kubectl:  
+`$ kubectl run frontend --image blackwolf292/kubernetes-intro-frontend:v1 --restart=Never --dry-run=client -o yaml > frontend-pod.yaml`
 
-#### Задание
-- Выясните причину, по которой pod frontend находится в статусе Error.
-- Создайте новый манифест frontend-pod-healthy.yaml. При его применении ошибка должна исчезнуть.
+
+### Задание
+
+* Выясните причину, по которой pod frontend находится в статусе Error.
+* Создайте новый манифест frontend-pod-healthy.yaml. При его применении ошибка должна исчезнуть.
+
 #### Ответ
+
 Попытка запуска pod frontend, завершилась ошибкой. Найденная причина - отсутствие описания environment variable в конфигурации контейнера:
 
 ```
@@ -157,3 +163,47 @@ frontend   1/1     Running   0          27s
 ```
 
 И помещен в директорию kubernetes-intro.
+
+## Механика запуска и взаимодействия контейнеров в Kubernetes
+
+* Используя frontend-replicaset.yaml, попытались создать объект ReplicaSet. Получили ошибку.
+
+### Задание
+
+Изменить frontend-replicaset.yaml так, что бы устранить ошибку. И применить его.
+
+#### Ответ
+
+```
+error: error validating "frontend-replicaset.yaml":  
+error validating data: ValidationError(ReplicaSet.spec): missing required field "selector"  
+in io.k8s.api.apps.v1.ReplicaSetSpec
+```
+
+Добавил в манифест поле selector
+
+```
+  selector:
+    matchLabels:
+      app: frontend
+```
+
+* Изменили манифест frontend-replicaset.yaml так, что из него сразу разворачивается 3 реплики сервиса.
+
+* Изменили версию образа в манифесте frontend-replicaset.yaml. Применили манифест.
+
+### Вопрос
+
+Почему обновление ReplicaSet (изменена версия образа контейнера) не повлекло обновление запущенных pod.
+
+#### Ответ
+
+ReplicaSet следит только за тем, что запущено указанное количество pod-ов. Т.к. указанное количество pod-ов уже было запущено, никаких других изменений не произошло.
+
+* Сделал образы для микросервиса paymentService, и залил на Docker Hub. Сделал манифест paymentservice-replicaset.yaml для развертывания трех реплик из образа v1.
+
+* Подготовил и применил Deployment манифест paymentservice-deployment.yaml. В результате чего появилось 3 реплики сервиса payment в состоянии Ready.
+
+* Убедился, на смени версии образа в манифесте Deployment, что работает, как обновление pod, так и откат на предыдущую версию. Увидел, что при обновлении использовалась стратегия по умолчанию - Rolling Update, и наличие двух ReplicaSet.
+
+TODO Probes
