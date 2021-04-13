@@ -223,3 +223,96 @@ ReplicaSet следит только за тем, что запущено ука
 tolerations:
   operator: "Exists"
 ```
+
+## Что стоит знать о безопасности и управлении доступом в Kubernetes
+
+* Рассмотрена авторизация в Кubernetes на основе RBAC.
+* Созданы манифесты для создания объектов в Кubernetes.
+* Созданы манифесты для управления доступом к Namespaces и к кластеру в целом.
+
+### Task01
+
+1. Создать Service Account **bob**, дать ему роль `admin` в рамках всего кластера;
+2. Создать Service Account **dave** без доступа к кластеру;
+
+В ходе выполнения задания были подготовлены и применены манифесты: `01-sa-bob.yaml`, `02-bob-clusteradmin-rolebinding.yaml`, `03-sa-dave.yaml`.
+
+```
+# kubectl get sa -n default
+NAME            SECRETS   AGE
+bob             1         3m32s
+dave            1         52s
+default         1         3d2h
+ingress-nginx   1         44h
+```
+
+```
+# kubectl get clusterrolebindings bob-rolebinding
+NAME              ROLE                        AGE
+bob-rolebinding   ClusterRole/cluster-admin   13m
+```
+
+### Task02
+
+1. Создать Namespace `prometheus`.
+2. Создать Service Account **carol** в этом Namespace.
+3. Дать всем Service Account в Namespace `prometheus` возможность делать *get*, *list*, *watch* в отношении Pods всего кластера.
+
+В ходе выполнения задания были подготовлены и применены манифесты: `01-ns-prometheus.yaml`, `02-sa-carol.yaml`, `03-pod-info-role.yaml`, `04-pod-info-rolebinding.yaml`.
+
+```
+# kubectl get ns prometheus
+NAME         STATUS   AGE
+prometheus   Active   3h27m
+```
+
+```
+# kubectl get sa -n prometheus
+NAME      SECRETS   AGE
+carol     1         3h30m
+default   1         3h33m
+```
+
+```
+# kubectl get clusterrole pod-info
+NAME       CREATED AT
+pod-info   2021-04-13T12:02:30Z
+```
+
+```
+# kubectl get clusterrolebindings -n prometheus pod-info-rolebinding
+NAME                   ROLE                   AGE
+pod-info-rolebinding   ClusterRole/pod-info   172m
+```
+
+### Task03
+
+1. Создать Namespace `dev`
+2. Создать Service Account **jane** в Namespace `dev`
+3. Дать **jane** роль *admin* в рамках Namespace `dev`
+4. Создать Service Account **ken** в Namespace `dev`
+5. Дать **ken** роль *view* в рамках Namespace `dev`
+
+
+В ходе выполнения задания были подготовлены и применены манифесты: `01-ns-dev.yaml`, `02-sa-jane.yaml`, `03-jane-admin-rolebinding.yaml`, `04-sa-ken.yaml`, `05-ken-view-rolebinding.yaml`.
+
+```
+# kubectl get ns dev
+NAME   STATUS   AGE
+dev    Active   3s
+```
+
+```
+# kubectl get sa -n dev
+NAME      SECRETS   AGE
+default   1         119s
+jane      1         81s
+ken       1         4s
+```
+
+```
+# kubectl get rolebindings -n dev
+NAME                     ROLE                AGE
+jane-admin-rolebinding   ClusterRole/admin   21s
+ken-view-rolebinding     ClusterRole/view    6s
+```
