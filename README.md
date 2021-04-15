@@ -316,3 +316,46 @@ NAME                     ROLE                AGE
 jane-admin-rolebinding   ClusterRole/admin   21s
 ken-view-rolebinding     ClusterRole/view    6s
 ```
+
+## Volumes, Storages, Stateful приложения
+
+* С помощью инструмента Kind, поднят одноузловый кластер K8S.
+* Развернут StatefulSet с MinIO, и создан Headless Service. Для чего были созданы манифесты: `minio-statefulset.yaml`, `minio-headless-service.yaml`.
+
+```
+$ kubectl get statefulsets minio
+NAME    READY   AGE
+minio   1/1     24m
+```
+
+```
+$ kubectl get pods minio-0
+NAME      READY   STATUS    RESTARTS   AGE
+minio-0   1/1     Running   0          23m
+```
+
+```
+$ kubectl get service minio
+NAME    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
+minio   ClusterIP   None         <none>        9000/TCP   4h20m
+```
+
+```
+$ kubectl get pvc
+NAME           STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+data-minio-0   Bound    pvc-da9cc2ed-5206-4b98-be93-42a02bd4dc8f   10Gi       RWO            standard       24m
+```
+
+```
+$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                  STORAGECLASS   REASON   AGE
+pvc-da9cc2ed-5206-4b98-be93-42a02bd4dc8f   10Gi       RWO            Delete           Bound    default/data-minio-0   standard                24m
+```
+
+* Затем, для повышения безопасности, изменил манифест `minio-statefulset.yaml` на использование *secrets*. Для чего был создан манифест `minio-secret.yaml`.
+
+```
+$ kubectl get secrets minio-secret
+NAME           TYPE     DATA   AGE
+minio-secret   Opaque   2      24m
+```
