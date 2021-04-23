@@ -359,3 +359,32 @@ $ kubectl get secrets minio-secret
 NAME           TYPE     DATA   AGE
 minio-secret   Opaque   2      24m
 ```
+
+## Сетевое взаимодействие Pod, сервисы
+
+### Работа с тестовым веб-приложением
+
+Выполнено:
+
+* Добавление проверок Pod
+* Создание объекта Deployment
+* Добавление сервисов в кластер ( ClusterIP )
+* Включение режима балансировки IPVS
+
+В результат были написаны манифесты: `web-deploy.yaml`, `web-svc-cip.yaml`.
+
+### Доступ к приложению извне кластера
+
+Выполнено:
+
+* Установка MetalLB в Layer2-режиме
+* Добавление сервиса LoadBalancer
+* Установка Ingress-контроллера и прокси ingress-nginx
+* Создание правил Ingress
+
+В результат были написаны манифесты: `metallb-config.yaml`, `web-svc-lb.yaml`, `nginx-lb.yaml`, `web-svc-headless.yaml`, `web-ingress.yaml`.
+
+#### Доступ к CoreDNS снаружи кластера
+
+В результат были написаны манифесты: `coredns/coredns-svc-lb-tcp.yaml`, `coredns/coredns-svc-lb-udp.yaml`.
+
