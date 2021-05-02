@@ -1,0 +1,23 @@
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    auto:
+      commonName: ""
+    secret:
+      secretName: "harbor-tls"
+  ingress:
+    hosts:
+      core: harbor.34.89.241.29.nip.io
+    controller: default
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      cert-manager.io/acme-challenge-type: http01
+
+externalURL: https://harbor.34.89.241.29.nip.io
+
+notary:
+  enabled: false
