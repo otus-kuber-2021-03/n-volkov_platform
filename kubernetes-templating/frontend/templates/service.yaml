@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      {{- if (eq "NodePort" .Values.service.type) }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
