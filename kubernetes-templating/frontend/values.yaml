@@ -6,8 +6,8 @@ replicas: 1
 service:
   type: NodePort
   port: 80
-  targetPort: 8079
+  targetPort: 8080
   nodePort: 30001
 
 ingress:
-  host: shop.34.89.180.59.nip.io
+  host: shop.34.89.241.29.nip.io

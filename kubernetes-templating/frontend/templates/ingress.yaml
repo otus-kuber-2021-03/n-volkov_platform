@@ -2,25 +2,23 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: frontend-ingress
-  labels:
-    app: frontend
   annotations:
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: "letsencrypt-stage"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  rules:
-    - host: {{ .Values.ingress.host }}
-      http:
-        paths:
-        - pathType: Prefix
-          path: /
-          backend:
-            service:
-              name: frontend-service
-              port:
-                number: 80
   tls:
   - hosts:
-    - {{ .Values.ingress.host }}
+      - {{ .Values.ingress.host }}
     secretName: frontend-cert
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
