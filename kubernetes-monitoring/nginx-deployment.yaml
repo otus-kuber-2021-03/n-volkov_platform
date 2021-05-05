@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-monitoring-deployment
+  labels:
+    app: nginx-monitoring
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-monitoring
+  template:
+    metadata:
+      labels:
+        app: nginx-monitoring
+    spec:
+      containers:
+      - image: blackwolf292/kubernetes-monitoring-nginx:v1
+        name: nginx-monitoring
+        readinessProbe:
+          initialDelaySeconds: 10
+          httpGet:
+            path: "/_healthz"
+            port: 8888
