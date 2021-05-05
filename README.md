@@ -388,3 +388,181 @@ minio-secret   Opaque   2      24m
 
 В результат были написаны манифесты: `coredns/coredns-svc-lb-tcp.yaml`, `coredns/coredns-svc-lb-udp.yaml`.
 
+## Шаблонизация манифестов Kubernetes
+
+Добавление репозитория *stable* вызвало ошибку:
+
+```
+$ helm repo add stable https://kubernetes-charts.storage.googleapis.com  
+Error: repo "https://kubernetes-charts.storage.googleapis.com" is no longer available;
+try "https://charts.helm.sh/stable" instead
+```
+
+Было исправлено:
+
+```
+$ helm repo add stable https://charts.helm.sh/stable
+```
+
+### nginx-ingress
+
+Создал namespace и release *nginx-ingress*
+
+```
+$ kubectl get ns nginx-ingress
+NAME            STATUS   AGE
+nginx-ingress   Active   39h
+```
+
+```
+$ helm ls -n nginx-ingress
+NAME         	NAMESPACE    	REVISION	UPDATED                             	STATUS  	CHART               	APP VERSION
+nginx-ingress	nginx-ingress	1       	2021-05-03 00:38:42.924727 +0300 MSK	deployed	nginx-ingress-1.41.3	v0.34.1
+```
+
+```
+$ kubectl get service -n nginx-ingress
+NAME                            TYPE           CLUSTER-IP     EXTERNAL-IP    PORT(S)                      AGE
+nginx-ingress-controller        LoadBalancer   10.36.12.142   34.89.241.29   80:30940/TCP,443:30776/TCP   39h
+nginx-ingress-default-backend   ClusterIP      10.36.8.204    <none>         80/TCP                       39h
+```
+
+### cert-manager
+
+Добавил репозиторий:
+
+```
+$ helm repo add jetstack https://charts.jetstack.io
+```
+
+Создал namespace cert-manager и установил *cert-manager*
+
+```
+$ kubectl get ns cert-manager
+NAME           STATUS   AGE
+cert-manager   Active   39h
+```
+
+```
+$ kubectl get pods -n cert-manager
+NAME                                       READY   STATUS    RESTARTS   AGE
+cert-manager-7998c69865-sj2rh              1/1     Running   0          39h
+cert-manager-cainjector-7b744d56fb-lnmmv   1/1     Running   0          39h
+cert-manager-webhook-7d6d4c78bc-9lcpm      1/1     Running   0          39h
+```
+
+Создал два ClusterIssuer:
+
+```
+$ kubectl apply -f kubernetes-templating/cert-manager/letsencrypt-prod.yaml
+$ kubectl apply -f kubernetes-templating/cert-manager/letsencrypt-stage.yaml
+```
+
+### chartmuseum
+
+Создал namespace chartmuseum и установил релиз, используя кастомизированный `values.yaml`
+
+```
+$ helm ls -n chartmuseum
+NAME       	NAMESPACE  	REVISION	UPDATED                             	STATUS  	CHART             	APP VERSION
+chartmuseum	chartmuseum	1       	2021-05-04 16:22:54.441749 +0300 MSK	deployed	chartmuseum-2.13.2	0.12.0
+```
+
+```
+$ kubectl get certificate -n chartmuseum
+NAME              READY   SECRET            AGE
+chartmuseum-tls   True    chartmuseum-tls   2m6s
+```
+
+```
+$ curl -Iv 'https://chartmuseum.34.89.241.29.nip.io'
+*   Trying 34.89.241.29...
+* TCP_NODELAY set
+* Connected to chartmuseum.34.89.241.29.nip.io (34.89.241.29) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/cert.pem
+  CApath: none
+* TLSv1.2 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+* TLSv1.2 (IN), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+* SSL connection using TLSv1.2 / ECDHE-RSA-AES128-GCM-SHA256
+* ALPN, server accepted to use h2
+* Server certificate:
+*  subject: CN=chartmuseum.34.89.241.29.nip.io
+*  start date: May  4 12:23:23 2021 GMT
+*  expire date: Aug  2 12:23:23 2021 GMT
+*  subjectAltName: host "chartmuseum.34.89.241.29.nip.io" matched cert's "chartmuseum.34.89.241.29.nip.io"
+*  issuer: C=US; O=Let's Encrypt; CN=R3
+*  SSL certificate verify ok.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* Using Stream ID: 1 (easy handle 0x7fd9d700e800)
+> HEAD / HTTP/2
+> Host: chartmuseum.34.89.241.29.nip.io
+> User-Agent: curl/7.64.1
+> Accept: */*
+```
+
+### harbor
+
+Создал namespace harbor и установил релиз, используя кастомизированный `values.yaml`
+
+```
+$ helm ls -n harbor
+NAME  	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART       	APP VERSION
+harbor	harbor   	1       	2021-05-03 02:15:01.383419 +0300 MSK	deployed	harbor-1.5.5	2.1.5
+```
+
+```
+$ kubectl get pods -n harbor
+NAME                                         READY   STATUS    RESTARTS   AGE
+harbor-harbor-chartmuseum-79f856d678-k79rf   1/1     Running   0          39h
+harbor-harbor-clair-67946fcbd8-l7vtf         2/2     Running   140        39h
+harbor-harbor-core-5f4585fc46-pgtzr          1/1     Running   0          39h
+harbor-harbor-database-0                     1/1     Running   0          39h
+harbor-harbor-jobservice-8564dff769-zwph7    1/1     Running   0          39h
+harbor-harbor-portal-77bb869946-qqk78        1/1     Running   0          39h
+harbor-harbor-redis-0                        1/1     Running   0          39h
+harbor-harbor-registry-545df85c57-7t9gr      2/2     Running   0          39h
+harbor-harbor-trivy-0                        1/1     Running   0          39h
+```
+
+```
+$ kubectl get certificate -n harbor
+NAME         READY   SECRET       AGE
+harbor-tls   True    harbor-tls   39h
+```
+
+### Создаем свой helm chart
+
+Были созданы, и загружены в harbor, два chart-а: **frontend** и **hipster-shop**
+
+```
+$ helm search repo hipster-shop
+NAME                   	CHART VERSION	APP VERSION	DESCRIPTION
+templating/hipster-shop	0.1.0        	1.16.0     	A Helm chart for Kubernetes
+```
+
+```
+$ helm search repo frontend
+NAME               	CHART VERSION	APP VERSION	DESCRIPTION
+templating/frontend	0.1.0        	1.16.0     	A Helm chart for Kubernetes
+```
+
+### Kubecfg
+
+Был создан, и проверен в работе, `services.jsonnet` – шаблон для сервисов *paymentservice* и *shippingservice*.
+
+### Kustomize
+
+Для сервиса *adservice*, разделенного на манифесты `adservice-deployment.yaml` и `adservice-service.yaml`, были написаны `kustomization.yaml` для установки в два окружения: **dev** (namespace hipster-shop) и **prod** (namespace hipster-shop-prod).
