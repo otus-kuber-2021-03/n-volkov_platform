@@ -573,15 +573,60 @@ templating/frontend	0.1.0        	1.16.0     	A Helm chart for Kubernetes
 Был развернут *kube-prometheus* (release-0.8):
 
 ```
-kubectl create -f manifests/setup
-kubectl create -f manifests/
+$ kubectl create -f manifests/setup
+$ kubectl create -f manifests/
 ```
 
 Были написаны, и применены:
 
 * `deployment.yaml` и `service.yaml` - для *nginx* и *nginx exporter*;
 * `ingress.yaml` - для доступа к *Prometheus* и *Grafana*, и для тестовых запросов к *nginx*;
+
+```
+$ kubectl get service -n ingress-nginx
+NAME                                                     TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)                      AGE
+ingress-nginx-nginx-ingress-controller                   LoadBalancer   10.98.70.194    172.16.18.200   80:31400/TCP,443:31335/TCP   16h
+...
+```
+
+```
+$ kubectl describe ingresses nginx-monitoring-ingress -n monitoring
+...
+Rules:
+  Host                                   Path  Backends
+  ----                                   ----  --------
+  nginx-monitoring.172.16.18.200.nip.io
+                                         /   nginx-monitoring-service:80 (172.17.0.3:8888,172.17.0.4:8888,172.17.0.5:8888)
+  prometheus.172.16.18.200.nip.io
+                                         /   prometheus-k8s:9090 (172.17.0.18:9090,172.17.0.19:9090)
+  grafana.172.16.18.200.nip.io
+                                         /   grafana:3000 (172.17.0.15:3000)
+Annotations:                             kubernetes.io/ingress.class: nginx
+...
+```
+
 * `servicemonitor.yaml` - для работы *Prometheus service discovery*, и мониторинга *nginx*.
+
+```
+$ kubectl describe servicemonitors nginx-monitoring -n monitoring
+Name:         nginx-monitoring
+Namespace:    monitoring
+Labels:       app=nginx-monitoring
+Annotations:  <none>
+API Version:  monitoring.coreos.com/v1
+Kind:         ServiceMonitor
+...
+Spec:
+  Endpoints:
+    Interval:  10s
+    Port:      metrics
+  Selector:
+    Match Labels:
+      App:  nginx-monitoring
+...
+```
+
+### Результаты
 
 ```
 $ curl 'http://nginx-monitoring.172.16.18.200.nip.io/basic_status'
