@@ -566,3 +566,39 @@ templating/frontend	0.1.0        	1.16.0     	A Helm chart for Kubernetes
 ### Kustomize
 
 Для сервиса *adservice*, разделенного на манифесты `adservice-deployment.yaml` и `adservice-service.yaml`, были написаны `kustomization.yaml` для установки в два окружения: **dev** (namespace hipster-shop) и **prod** (namespace hipster-shop-prod).
+
+## Мониторинг сервиса в кластере k8s
+
+Был создан кастомный образ *nginx*, и загружен в Docker Hub.  
+Был развернут *kube-prometheus* (release-0.8):
+
+```
+kubectl create -f manifests/setup
+kubectl create -f manifests/
+```
+
+Были написаны, и применены:
+
+* `deployment.yaml` и `service.yaml` - для *nginx* и *nginx exporter*;
+* `ingress.yaml` - для доступа к *Prometheus* и *Grafana*, и для тестовых запросов к *nginx*;
+* `servicemonitor.yaml` - для работы *Prometheus service discovery*, и мониторинга *nginx*.
+
+```
+$ curl 'http://nginx-monitoring.172.16.18.200.nip.io/basic_status'
+Active connections: 2
+server accepts handled requests
+ 921 921 2750
+Reading: 0 Writing: 1 Waiting: 1
+```
+
+```
+http://prometheus.172.16.18.200.nip.io/graph?g0.expr=nginx_connections_accepted&g0.tab=0&g0.stacked=0&g0.range_input=1h
+```
+
+![](kubernetes-monitoring/images/prometheus.png)
+
+```
+http://grafana.172.16.18.200.nip.io/d/nginx/nginx?orgId=1&refresh=5s
+```
+
+![](kubernetes-monitoring/images/grafana.png)
