@@ -10,5 +10,10 @@ spec:
     app: nginx-monitoring
   ports:
   - port: 80
+    name: http
     targetPort: 8888
+    protocol: TCP
+  - port: 9113
+    name: metrics
+    targetPort: 9113
     protocol: TCP
