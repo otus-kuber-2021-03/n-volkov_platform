@@ -36,23 +36,4 @@ spec:
                 name: nginx-monitoring-service
                 port:
                   number: 9113
-    - host: "prometheus.172.16.18.200.nip.io"
-      http:
-        paths:
-          - pathType: Prefix
-            path: /
-            backend:
-              service:
-                name: prometheus-k8s
-                port:
-                  number: 9090
-    - host: "grafana.172.16.18.200.nip.io"
-      http:
-        paths:
-          - pathType: Prefix
-            path: /
-            backend:
-              service:
-                name: grafana
-                port:
-                  number: 3000
+
