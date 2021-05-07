@@ -573,14 +573,18 @@ templating/frontend	0.1.0        	1.16.0     	A Helm chart for Kubernetes
 Был развернут *kube-prometheus* (release-0.8):
 
 ```
+https://github.com/prometheus-operator/kube-prometheus
+```
+
+```
 $ kubectl create -f manifests/setup
 $ kubectl create -f manifests/
 ```
 
 Были написаны, и применены:
 
-* `deployment.yaml` и `service.yaml` - для *nginx* и *nginx exporter*;
-* `ingress.yaml` - для доступа к *Prometheus* и *Grafana*, и для тестовых запросов к *nginx*;
+* `namespace.yaml`, `deployment.yaml` и `service.yaml` - для *nginx* и *nginx exporter*;
+* `ingress-nginx.yaml` и `ingress-monitoring.yaml` - для доступа к *Prometheus* и *Grafana*, и для тестовых запросов к *nginx*;
 
 ```
 $ kubectl get service -n ingress-nginx
@@ -590,22 +594,53 @@ ingress-nginx-nginx-ingress-controller                   LoadBalancer   10.98.70
 ```
 
 ```
-$ kubectl describe ingresses nginx-monitoring-ingress -n monitoring
-...
+$ kubectl describe ingresses -n monitoring
+Name:             ingress-monitoring
+Namespace:        monitoring
+Address:          172.16.18.21
+Rules:
+  Host                             Path  Backends
+  ----                             ----  --------
+  prometheus.172.16.18.200.nip.io
+                                   /   prometheus-k8s:9090 (172.17.0.18:9090,172.17.0.19:9090)
+  grafana.172.16.18.200.nip.io
+                                   /   grafana:3000 (172.17.0.15:3000)
+Annotations:                       kubernetes.io/ingress.class: nginx
+Events:
+  Type    Reason  Age                From                      Message
+  ----    ------  ----               ----                      -------
+  Normal  Sync    23m (x2 over 23m)  nginx-ingress-controller  Scheduled for sync
+```
+
+```
+$ kubectl describe ingresses -n nginx-monitoring
+Name:             nginx-monitoring-ingress
+Namespace:        nginx-monitoring
+Address:          172.16.18.21
 Rules:
   Host                                   Path  Backends
   ----                                   ----  --------
-  nginx-monitoring.172.16.18.200.nip.io
+  nginx-stats.172.16.18.200.nip.io
                                          /   nginx-monitoring-service:80 (172.17.0.3:8888,172.17.0.4:8888,172.17.0.5:8888)
-  prometheus.172.16.18.200.nip.io
-                                         /   prometheus-k8s:9090 (172.17.0.18:9090,172.17.0.19:9090)
-  grafana.172.16.18.200.nip.io
-                                         /   grafana:3000 (172.17.0.15:3000)
+  nginx-monitoring.172.16.18.200.nip.io
+                                         /   nginx-monitoring-service:9113 (172.17.0.3:9113,172.17.0.4:9113,172.17.0.5:9113)
 Annotations:                             kubernetes.io/ingress.class: nginx
-...
-```
-
-* `servicemonitor.yaml` - для работы *Prometheus service discovery*, и мониторинга *nginx*.
+                                         nginx.ingress.kubernetes.io/configuration-snippet:
+                                           if ($host ~ 'nginx-stats')
+                                           {
+                                             rewrite ^ /basic_status break;
+                                           }
+                                           if ($host ~ 'nginx-monitoring')
+                                           {
+                                             rewrite ^ /metrics break;
+                                           }
+Events:
+  Type    Reason  Age                From                      Message
+  ----    ------  ----               ----                      -------
+  Normal  Sync    25m (x7 over 96m)  nginx-ingress-controller  Scheduled for sync
+  ```
+  
+* `servicemonitor.yaml` - для мониторинга *nginx* с помощью *Prometheus*.
 
 ```
 $ kubectl describe servicemonitors nginx-monitoring -n monitoring
@@ -618,8 +653,12 @@ Kind:         ServiceMonitor
 ...
 Spec:
   Endpoints:
-    Interval:  10s
-    Port:      metrics
+    Bearer Token File:  /var/run/secrets/kubernetes.io/serviceaccount/token
+    Interval:           10s
+    Port:               metrics
+  Namespace Selector:
+    Match Names:
+      nginx-monitoring
   Selector:
     Match Labels:
       App:  nginx-monitoring
@@ -629,11 +668,42 @@ Spec:
 ### Результаты
 
 ```
-$ curl 'http://nginx-monitoring.172.16.18.200.nip.io/basic_status'
+$ curl 'http://nginx-monitoring.172.16.18.200.nip.io'
 Active connections: 2
 server accepts handled requests
  921 921 2750
 Reading: 0 Writing: 1 Waiting: 1
+```
+
+```
+$ curl http://nginx-monitoring.172.16.18.200.nip.io
+# HELP nginx_connections_accepted Accepted client connections
+# TYPE nginx_connections_accepted counter
+nginx_connections_accepted 647
+# HELP nginx_connections_active Active client connections
+# TYPE nginx_connections_active gauge
+nginx_connections_active 1
+# HELP nginx_connections_handled Handled client connections
+# TYPE nginx_connections_handled counter
+nginx_connections_handled 647
+# HELP nginx_connections_reading Connections where NGINX is reading the request header
+# TYPE nginx_connections_reading gauge
+nginx_connections_reading 0
+# HELP nginx_connections_waiting Idle client connections
+# TYPE nginx_connections_waiting gauge
+nginx_connections_waiting 0
+# HELP nginx_connections_writing Connections where NGINX is writing the response back to the client
+# TYPE nginx_connections_writing gauge
+nginx_connections_writing 1
+# HELP nginx_http_requests_total Total http requests
+# TYPE nginx_http_requests_total counter
+nginx_http_requests_total 1933
+# HELP nginx_up Status of the last metric scrape
+# TYPE nginx_up gauge
+nginx_up 1
+# HELP nginxexporter_build_info Exporter build information
+# TYPE nginxexporter_build_info gauge
+nginxexporter_build_info{commit="5f88afbd906baae02edfbab4f5715e06d88538a0",date="2021-03-22T20:16:09Z",version="0.9.0"} 1
 ```
 
 ```
