@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: nginx-monitoring
   name: nginx-monitoring-service
   labels:
     app: nginx-monitoring
@@ -9,11 +10,11 @@ spec:
   selector:
     app: nginx-monitoring
   ports:
-  - port: 80
-    name: http
-    targetPort: 8888
-    protocol: TCP
-  - port: 9113
-    name: metrics
-    targetPort: 9113
-    protocol: TCP
+    - port: 80
+      name: http
+      targetPort: 8888
+      protocol: TCP
+    - port: 9113
+      name: metrics
+      targetPort: 9113
+      protocol: TCP
