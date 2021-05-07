@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: nginx-monitoring
+  name: nginx-monitoring-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      if ($host ~ 'nginx-stats')
+      {
+        rewrite ^ /basic_status break;
+      }
+      if ($host ~ 'nginx-monitoring')
+      {
+        rewrite ^ /metrics break;
+      }
+spec:
+  rules:
+    - host: "nginx-stats.172.16.18.200.nip.io"
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: nginx-monitoring-service
+                port:
+                  number: 80
+    - host: "nginx-monitoring.172.16.18.200.nip.io"
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: nginx-monitoring-service
+                port:
+                  number: 9113
+    - host: "prometheus.172.16.18.200.nip.io"
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: prometheus-k8s
+                port:
+                  number: 9090
+    - host: "grafana.172.16.18.200.nip.io"
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
