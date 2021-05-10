@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: nginx-monitoring
+  name: nginx-monitoring-deployment
+  labels:
+    app: nginx-monitoring
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-monitoring
+  template:
+    metadata:
+      labels:
+        app: nginx-monitoring
+    spec:
+      containers:
+        - image: blackwolf292/kubernetes-monitoring-nginx:v1
+          name: nginx-monitoring
+          ports:
+            - containerPort: 8888
+              name: http
+          readinessProbe:
+            initialDelaySeconds: 10
+            httpGet:
+              path: "/_healthz"
+              port: 8888
+        - image: nginx/nginx-prometheus-exporter:0.9.0
+          name: nginx-prometheus-exporter
+          args: [ '-nginx.scrape-uri', 'http://localhost:8888/basic_status' ]
+          ports:
+            - containerPort: 9113
+              name: metrics
