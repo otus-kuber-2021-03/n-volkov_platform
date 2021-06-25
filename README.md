@@ -717,3 +717,102 @@ http://grafana.172.16.18.200.nip.io/d/nginx/nginx?orgId=1&refresh=5s
 ```
 
 ![](kubernetes-monitoring/images/grafana.png)
+
+## Сервисы централизованного логирования
+
+Подготовил Kubernetes кластер в GCP:
+
+```
+$ kubectl get nodes
+NAME                                     STATUS   ROLES    AGE   VERSION
+gke-otus-11-default-pool-3f021400-t9bt   Ready    <none>   43h   v1.19.9-gke.1400
+gke-otus-11-infra-pool-d3c4f0e8-1lsk     Ready    <none>   43h   v1.19.9-gke.1400
+gke-otus-11-infra-pool-d3c4f0e8-2vhb     Ready    <none>   43h   v1.19.9-gke.1400
+gke-otus-11-infra-pool-d3c4f0e8-mwsr     Ready    <none>   43h   v1.19.9-gke.1400
+```
+
+Установил HipsterShop:
+
+```
+$ kubectl get pods -n microservices-demo -o wide
+NAME                                     READY   STATUS    RESTARTS   AGE   IP           NODE                                     NOMINATED NODE   READINESS GATES
+adservice-56d56d89cc-vrm2q               1/1     Running   0          43h   10.24.0.19   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+cartservice-c8b9fc586-dhhcm              1/1     Running   2          43h   10.24.0.14   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+checkoutservice-74f4c5464f-9f9w5         1/1     Running   0          43h   10.24.0.9    gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+currencyservice-7df4d74b7c-5rg99         1/1     Running   0          43h   10.24.0.15   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+emailservice-86794489df-xcckk            1/1     Running   0          43h   10.24.0.8    gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+frontend-cf49f7975-n8kfn                 1/1     Running   0          43h   10.24.0.11   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+loadgenerator-7fdb874b-g2nkr             1/1     Running   4          43h   10.24.0.16   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+paymentservice-5768d9bb67-wzjlb          1/1     Running   0          43h   10.24.0.12   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+productcatalogservice-84fd74ccc9-2d5l9   1/1     Running   0          43h   10.24.0.13   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+recommendationservice-6fcb597467-gcwgd   1/1     Running   0          43h   10.24.0.10   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+redis-cart-55d76945cb-nlm29              1/1     Running   0          43h   10.24.0.18   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+shippingservice-6bc75ffff-hgsrw          1/1     Running   0          43h   10.24.0.17   gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+```
+
+Установил *ingress-nginx*, используя `ingress-nginx.values.yaml`:
+
+```
+$ kubectl get pods -n ingress-nginx -o wide
+NAME                                        READY   STATUS    RESTARTS   AGE     IP          NODE                                   NOMINATED NODE   READINESS GATES
+ingress-nginx-controller-7cccfcb7bd-4swhc   1/1     Running   0          6h16m   10.24.2.6   gke-otus-11-infra-pool-d3c4f0e8-1lsk   <none>           <none>
+ingress-nginx-controller-7cccfcb7bd-n6f68   1/1     Running   0          6h16m   10.24.1.6   gke-otus-11-infra-pool-d3c4f0e8-mwsr   <none>           <none>
+ingress-nginx-controller-7cccfcb7bd-sxm66   1/1     Running   0          6h17m   10.24.3.4   gke-otus-11-infra-pool-d3c4f0e8-2vhb   <none>           <none>
+```
+
+Установил в namespace *observability* EFK стек, используя `fluent-bit.values.yaml`, `elasticsearch.values.yaml` и `kibana.values.yaml`:
+
+```
+$ kubectl get pods -n observability -o wide
+NAME                             READY   STATUS    RESTARTS   AGE    IP         NODE                                     NOMINATED NODE   READINESS GATES
+elasticsearch-master-0           1/1     Running   0          2m6s   10.24.2.2   gke-otus-11-infra-pool-d3c4f0e8-1lsk     <none>           <none>
+elasticsearch-master-1           1/1     Running   0          2m6s   10.24.0.2   gke-otus-11-infra-pool-d3c4f0e8-2vhb     <none>           <none>
+elasticsearch-master-2           1/1     Running   0          2m6s   10.24.2.7   gke-otus-11-infra-pool-d3c4f0e8-mwsr     <none>           <none>
+fluent-bit-25pn5                 1/1     Running   0          30m    10.24.2.16  gke-otus-11-infra-pool-d3c4f0e8-2vhb     <none>           <none>
+fluent-bit-gkc88                 1/1     Running   0          30m    10.24.2.15  gke-otus-11-infra-pool-d3c4f0e8-1lsk     <none>           <none>
+fluent-bit-st4lh                 1/1     Running   0          30m    10.24.2.13  gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+fluent-bit-x9shb                 1/1     Running   0          29m    10.24.2.14  gke-otus-11-infra-pool-d3c4f0e8-mwsr     <none>           <none>
+kibana-kibana-687f987f84-m9lnv   1/1     Running   0          33m    10.24.2.17  gke-otus-11-default-pool-3f021400-t9bt   <none>           <none>
+```
+
+Установил Prometheus стек, используя `kube-prometheus-stack.values.yaml`. Установил elasticsearch-exporter. Проверил, что метрики действительно собираются корректно.
+
+Добился появления корректных логов ingress-nginx в Kibana, используя параметры *log-format-escape-json* и *log-format-upstream* в `ingress-nginx.values.yaml`. Создал Dashboard, и экспортировал его в export.ndjson.
+
+![](kubernetes-logging/images/visualize_lib.png)
+
+![](kubernetes-logging/images/kibana.png)
+
+В дополнение к уже установленному Prometheus, установил Loki стек, используя `loki-stack.values.yaml`.
+
+```
+$ kubectl get pods -n observability
+NAME                                                     READY   STATUS    RESTARTS   AGE
+alertmanager-prometheus-operator-kube-p-alertmanager-0   2/2     Running   0          43h30m
+elasticsearch-exporter-5b6cc9b94d-fp96r                  1/1     Running   0          37h2m
+elasticsearch-master-0                                   1/1     Running   0          39h2m
+elasticsearch-master-1                                   1/1     Running   0          39h2m
+elasticsearch-master-2                                   1/1     Running   0          39h2m
+fluent-bit-25pn5                                         1/1     Running   0          42h30m
+fluent-bit-gkc88                                         1/1     Running   0          42h30m
+fluent-bit-st4lh                                         1/1     Running   0          42h30m
+fluent-bit-x9shb                                         1/1     Running   0          42h29m
+kibana-kibana-687f987f84-m9lnv                           1/1     Running   0          42h33m
+loki-0                                                   1/1     Running   0          37h43m
+loki-promtail-gxksj                                      1/1     Running   0          37h43m
+loki-promtail-t8w4h                                      1/1     Running   0          37h43m
+loki-promtail-vbfzg                                      1/1     Running   0          37h42m
+loki-promtail-w8v8w                                      1/1     Running   0          37h43m
+prometheus-operator-grafana-6cdcf7c7c8-h2r27             2/2     Running   0          43h30m
+prometheus-operator-kube-p-operator-79b9c659c9-d9vnp     1/1     Running   0          43h30m
+prometheus-operator-kube-state-metrics-6d69c7b7c-rk7x9   1/1     Running   0          43h30m
+prometheus-operator-prometheus-node-exporter-2w7wh       1/1     Running   0          43h30m
+prometheus-operator-prometheus-node-exporter-l9dk6       1/1     Running   0          43h30m
+prometheus-operator-prometheus-node-exporter-lgbg9       1/1     Running   0          43h30m
+prometheus-operator-prometheus-node-exporter-p6cbl       1/1     Running   0          43h29m
+prometheus-prometheus-operator-kube-p-prometheus-0       2/2     Running   1          43h30m
+```
+
+Создал в Grafana новый Dashboard для ingress-nginx.
+
+![](kubernetes-logging/images/grafana.png)

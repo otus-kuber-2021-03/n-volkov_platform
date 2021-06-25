@@ -1,0 +1,49 @@
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: false
+    hosts:
+      - alertmanager.35.205.43.68.nip.io
+    paths:
+      - /
+  alertmanagerSpec:
+    nodeSelector:
+      cloud.google.com/gke-nodepool: infra-pool
+    tolerations:
+      - key: node-role
+        operator: Equal
+        value: infra
+        effect: NoSchedule
+
+grafana:
+  enabled: true
+  defaultDashboardsEnabled: true
+  adminPassword: prom-operator
+  ingress:
+    enabled: true
+    hosts:
+      - grafana.35.205.43.68.nip.io
+    path: /
+  additionalDataSources:
+    - name: MyLoki
+      access: direct
+      type: loki
+      url: http://loki:3100
+
+prometheus:
+  enabled: true
+  ingress:
+    enabled: true
+    hosts:
+      - prometheus.35.205.43.68.nip.io
+    paths:
+      - /
+  prometheusSpec:
+    tolerations:
+      - key: node-role
+        operator: Equal
+        value: infra
+        effect: NoSchedule
+    nodeSelector:
+      cloud.google.com/gke-nodepool: infra-pool
+    serviceMonitorSelectorNilUsesHelmValues: false
